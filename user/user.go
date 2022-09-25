@@ -33,6 +33,15 @@ type Role struct {
 	AuthItemName string `json:"auth_item_name"`
 }
 
+type RoleFilter struct {
+	ID           *int64  `form:"id"`
+	Name         *string `form:"name"`
+	AuthItemName *string `form:"auth_item_name"`
+	OrderBy      *string `form:"orderby"`
+	Limit        *int64  `form:"limit"`
+	Offset       *int64  `form:"offset"`
+}
+
 type Link struct {
 	UUserID int64 `json:"u_user_id"`
 	UROleID int64 `json:"u_role_id"`
@@ -45,6 +54,7 @@ func RegisterUserHandlers(router *gin.Engine, db *sql.DB) {
 	registerUpdateUser(router, db)
 	registerPostUser(router, db)
 	registerDeleteUser(router, db)
+	registerGetRoles(router, db)
 	registerGetRolesByUserID(router, db)
 	registerPostRole(router, db)
 	registerDeleteRole(router, db)
@@ -56,6 +66,16 @@ func RegisterUserHandlers(router *gin.Engine, db *sql.DB) {
 
 func checkOrderByColumn(x string) bool {
 	cols := []string{"id", "login", "password", "email"}
+	for _, n := range cols {
+		if x == n {
+			return true
+		}
+	}
+	return false
+}
+
+func checkOrderByColumnRoles(x string) bool {
+	cols := []string{"id", "name", "auth_item_name"}
 	for _, n := range cols {
 		if x == n {
 			return true

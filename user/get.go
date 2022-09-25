@@ -101,3 +101,47 @@ func registerGetRolesByUserID(router *gin.Engine, db *sql.DB) {
 
 	})
 }
+
+func registerGetRoles(router *gin.Engine, db *sql.DB) {
+	router.GET("/roles", func(c *gin.Context) {
+		var r RoleFilter
+		var roles []Role
+
+		if err := c.ShouldBind(&r); err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+		}
+		var orderBy string
+
+		if r.OrderBy != nil && checkOrderByColumnRoles(*r.OrderBy) {
+			orderBy = *r.OrderBy
+		} else {
+			orderBy = "name"
+		}
+
+		query := fmt.Sprintf(`SELECT * from u_role
+						  WHERE ($1::varchar IS NULL OR name = $1::varchar)
+							AND ($2::varchar IS NULL OR auth_item_name = $2::varchar)
+						  ORDER BY %s
+						  LIMIT $3 OFFSET $4`, orderBy)
+
+		rows, err := db.Query(query, r.Name, r.AuthItemName, r.Limit, r.Offset)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var role Role
+			if err := rows.Scan(&role.ID, &role.Name, &role.AuthItemName); err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+			}
+			roles = append(roles, role)
+		}
+		if err := rows.Err(); err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+		}
+
+		c.IndentedJSON(http.StatusOK, roles)
+
+	})
+}
